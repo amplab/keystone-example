@@ -1,0 +1,24 @@
+*.class
+*.log
+*.DS_Store
+
+# sbt specific
+dist/*
+target/
+lib_managed/
+src_managed/
+project/project/*
+project/target/*
+
+# Scala-IDE specific
+.idea*
+.scala_dependencies
+
+# Jars
+*.jar
+
+# vim tmps
+.*sw*
+
+# Jekyll stuff
+_site/
