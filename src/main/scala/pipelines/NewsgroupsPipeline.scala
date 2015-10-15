@@ -2,7 +2,7 @@ package pipelines
 
 import evaluation.MulticlassClassifierEvaluator
 import loaders.{LabeledData, NewsgroupsDataLoader}
-import nodes.{LogisticRegressionEstimator, SparseVectorCombiner, IDFCommonSparseFeatures}
+import nodes.{TreebankTokenizer, LogisticRegressionEstimator, SparseVectorCombiner, IDFCommonSparseFeatures}
 import nodes.learning.NaiveBayesEstimator
 import nodes.nlp._
 import nodes.stats.TermFrequency
@@ -25,7 +25,7 @@ term freq: x, log(x+1), sqrt(x), 1
 
  */
 
-object ExamplePipeline extends Logging {
+object NewsgroupsPipeline extends Logging {
   val appName = "ExamplePipeline"
 
   def run(sc: SparkContext, conf: ExampleConfig) {
@@ -71,8 +71,8 @@ object ExamplePipeline extends Logging {
         Transformer(_.toInt)*/
     val unoptimizedPipeline = Tokenizer("[\\s]+") andThen
         TermFrequency(x => x) andThen
-        (IDFCommonSparseFeatures(x => math.log(numExamples/x), conf.commonFeatures*10), trainData) andThen
-        (NaiveBayesEstimator(numClasses, lambda = 1), trainData, trainLabels) andThen
+        (IDFCommonSparseFeatures(x => math.log(numExamples/x), conf.commonFeatures), trainData) andThen
+        (NaiveBayesEstimator(numClasses, lambda = 3), trainData, trainLabels) andThen
         MaxClassifier
 
 
