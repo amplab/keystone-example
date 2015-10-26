@@ -19,7 +19,7 @@ libraryDependencies ++= Seq(
 )
 
 {
-  val defaultSparkVersion = "1.3.1"
+  val defaultSparkVersion = "1.5.1"
   val sparkVersion =
     scala.util.Properties.envOrElse("SPARK_VERSION", defaultSparkVersion)
   val excludeHadoop = ExclusionRule(organization = "org.apache.hadoop")

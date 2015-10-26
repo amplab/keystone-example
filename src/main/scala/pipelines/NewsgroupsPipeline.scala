@@ -2,11 +2,12 @@ package pipelines
 
 import evaluation.MulticlassClassifierEvaluator
 import loaders.{LabeledData, NewsgroupsDataLoader}
-import nodes.{TreebankTokenizer, LogisticRegressionEstimator, SparseVectorCombiner, IDFCommonSparseFeatures}
+import nodes.{TreebankTokenizer, SparseVectorCombiner, IDFCommonSparseFeatures}
 import nodes.learning.NaiveBayesEstimator
 import nodes.nlp._
 import nodes.stats.TermFrequency
 import nodes.util._
+import org.apache.spark.mllib.keystoneml.LogisticRegressionEstimator
 import org.apache.spark.{SparkConf, SparkContext}
 import scopt.OptionParser
 import weka.core.stemmers.{SnowballStemmer, LovinsStemmer}
@@ -72,8 +73,7 @@ object NewsgroupsPipeline extends Logging {
     val unoptimizedPipeline = Tokenizer("[\\s]+") andThen
         TermFrequency(x => x) andThen
         (IDFCommonSparseFeatures(x => math.log(numExamples/x), conf.commonFeatures), trainData) andThen
-        (NaiveBayesEstimator(numClasses, lambda = 3), trainData, trainLabels) andThen
-        MaxClassifier
+        (LogisticRegressionEstimator(numClasses, regParam = 5, numIters = 20), trainData, trainLabels)
 
 
     val predictor = Optimizer.execute(unoptimizedPipeline)
@@ -96,7 +96,7 @@ object NewsgroupsPipeline extends Logging {
   case class ExampleConfig(
     trainLocation: String = "",
     testLocation: String = "",
-    commonFeatures: Int = 100000)
+    commonFeatures: Int = 30000)
 
   def parse(args: Array[String]): ExampleConfig = new OptionParser[ExampleConfig](appName) {
     head(appName, "0.1")

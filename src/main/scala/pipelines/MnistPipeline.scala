@@ -1,16 +1,17 @@
 package pipelines
 
+import breeze.linalg.DenseVector
 import breeze.stats.distributions.{RandBasis, ThreadLocalRandomGenerator}
 import evaluation.MulticlassClassifierEvaluator
 import loaders.{CsvDataLoader, LabeledData}
-import nodes.learning.BlockLeastSquaresEstimator
-import nodes.stats.{LinearRectifier, PaddedFFT, RandomSignNode}
+import nodes.learning.{NaiveBayesEstimator, BlockWeightedLeastSquaresEstimator, LinearMapEstimator, BlockLeastSquaresEstimator}
+import nodes.stats.{NormalizeRows, LinearRectifier, PaddedFFT, RandomSignNode}
 import nodes.util._
 import org.apache.commons.math3.random.MersenneTwister
 import org.apache.spark.{SparkConf, SparkContext}
 import pipelines._
 import scopt.OptionParser
-import workflow.Pipeline
+import workflow.{Optimizer, Transformer, Pipeline}
 
 
 object MnistPipeline extends Serializable with Logging {
@@ -35,18 +36,23 @@ object MnistPipeline extends Serializable with Logging {
           .cache())
     val labels = ClassLabelIndicatorsFromIntLabels(numClasses).apply(train.labels)
 
-    val featurizer = Pipeline.gather {
+    val featurizer = Transformer[DenseVector[Double], DenseVector[Double]](identity)
+    //val featurizer = PaddedFFT() andThen LinearRectifier(0.0)
+    //val featurizer = RandomSignNode(mnistImageSize, randomSignSource) andThen PaddedFFT() andThen LinearRectifier(0.0)
+    /*val featurizer = Pipeline.gather {
       Seq.fill(conf.numFFTs) {
         RandomSignNode(mnistImageSize, randomSignSource) andThen PaddedFFT() andThen LinearRectifier(0.0)
       }
-    } andThen VectorCombiner()
+    } andThen VectorCombiner()*/
 
-    val pipeline = featurizer
-        .andThen(new BlockLeastSquaresEstimator(conf.blockSize, 1, conf.lambda.getOrElse(0)), train.data, labels)
-        .andThen(MaxClassifier)
 
-    // Train the model
-    val model = pipeline
+
+    val unoptimizedPipeline = featurizer andThen
+        //(new BlockLeastSquaresEstimator(conf.blockSize, 1, conf.lambda.getOrElse(0)), train.data, labels) andThen
+        (NaiveBayesEstimator(numClasses, conf.lambda.getOrElse(0)), train.data, train.labels) andThen
+        MaxClassifier
+
+    val predictor = Optimizer.execute(unoptimizedPipeline)
 
     val test = LabeledData(
       CsvDataLoader(sc, conf.testLocation, conf.numPartitions)
@@ -55,9 +61,9 @@ object MnistPipeline extends Serializable with Logging {
           .cache())
 
     // Calculate train error
-    val trainEval = MulticlassClassifierEvaluator(model(train.data), train.labels, numClasses)
+    val trainEval = MulticlassClassifierEvaluator(predictor(train.data), train.labels, numClasses)
     // Calculate test error
-    val testEval = MulticlassClassifierEvaluator(model(test.data), test.labels, numClasses)
+    val testEval = MulticlassClassifierEvaluator(predictor(test.data), test.labels, numClasses)
 
     logInfo("\nTrain Eval:\n" + trainEval.summary((0 to 9).toArray.map(_.toString)))
     logInfo("\nTest Eval:\n" + testEval.summary((0 to 9).toArray.map(_.toString)))
@@ -69,7 +75,7 @@ object MnistPipeline extends Serializable with Logging {
   case class MnistRandomFFTConfig(
                                      trainLocation: String = "",
                                      testLocation: String = "",
-                                     numFFTs: Int = 4,
+                                     numFFTs: Int = 8,
                                      blockSize: Int = 2048,
                                      numPartitions: Int = 10,
                                      lambda: Option[Double] = None,

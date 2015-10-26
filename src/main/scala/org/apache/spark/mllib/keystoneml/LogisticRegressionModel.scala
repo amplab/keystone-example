@@ -1,4 +1,4 @@
-package nodes
+package org.apache.spark.mllib.keystoneml
 
 import breeze.linalg.Vector
 import org.apache.spark.mllib.classification.{LogisticRegressionModel => MLlibLRM}
@@ -12,24 +12,7 @@ import workflow.{LabelEstimator, Transformer}
 
 import scala.reflect.ClassTag
 
-/**
- * A Logistic Regression model that transforms feature vectors to vectors containing
- * the logistic regression output of the different classes
- */
-case class LogisticRegressionModel[T <: Vector[Double]](model: MLlibLRM)
-    extends Transformer[T, Double] {
 
-  /**
-   * Transforms a feature vector to a vector containing
-   * the logistic regression output of the different classes
-
-   * @param in The input feature vector
-   * @return Logistic regression output of the classes for the input features
-   */
-  override def apply(in: T): Double = {
-    model.predict(breezeVectorToMLlib(in))
-  }
-}
 
 /**
  * A LabelEstimator which learns a Logistic Regression model from training data.
@@ -40,12 +23,12 @@ case class LogisticRegressionModel[T <: Vector[Double]](model: MLlibLRM)
  * @param convergenceTol Set the convergence tolerance of iterations for the optimizer. Default 1E-4.
  */
 case class LogisticRegressionEstimator[T <: Vector[Double] : ClassTag](
-    numClasses: Int,
-    regParam: Double = 0,
-    numIters: Int = 100,
-    convergenceTol: Double = 1E-4,
-    numFeatures: Int = -1
-  ) extends LabelEstimator[T, Double, Int] {
+  numClasses: Int,
+  regParam: Double = 0,
+  numIters: Int = 100,
+  convergenceTol: Double = 1E-4,
+  numFeatures: Int = -1
+  ) extends LabelEstimator[T, Int, Int] {
 
   /**
    * Train a classification model for Multinomial/Binary Logistic Regression using
@@ -57,6 +40,8 @@ case class LogisticRegressionEstimator[T <: Vector[Double] : ClassTag](
       extends GeneralizedLinearAlgorithm[MLlibLRM] with Serializable {
 
     this.numFeatures = numFeaturesValue
+    this.setIntercept(true)
+    this.setFeatureScaling(true)
     override val optimizer = new LBFGS(new LogisticGradient, new SquaredL2Updater)
 
     override protected val validators = List(multiLabelValidator)
@@ -91,5 +76,24 @@ case class LogisticRegressionEstimator[T <: Vector[Double] : ClassTag](
     val model = trainer.run(labeledPoints)
 
     new LogisticRegressionModel(model)
+  }
+}
+
+/**
+ * A Logistic Regression model that transforms feature vectors to vectors containing
+ * the logistic regression output of the different classes
+ */
+case class LogisticRegressionModel[T <: Vector[Double]](model: MLlibLRM)
+    extends Transformer[T, Int] {
+
+  /**
+   * Transforms a feature vector to a vector containing
+   * the logistic regression output of the different classes
+
+   * @param in The input feature vector
+   * @return Logistic regression output of the classes for the input features
+   */
+  override def apply(in: T): Int = {
+    model.predict(breezeVectorToMLlib(in)).toInt
   }
 }
