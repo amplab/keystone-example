@@ -20,15 +20,13 @@ object ExamplePipeline extends Logging {
 
     // Build the classifier estimator
     logInfo("Training classifier")
-    val unoptimizedPipeline = Trim andThen
+    val predictor = Trim andThen
         LowerCase() andThen
         Tokenizer() andThen
         TermFrequency(x => 1) andThen
         (CommonSparseFeatures(conf.commonFeatures), trainData.data) andThen
         (NaiveBayesEstimator(numClasses), trainData.data, trainData.labels) andThen
         MaxClassifier
-
-    val predictor = Optimizer.execute(unoptimizedPipeline)
 
     // Evaluate the classifier
     logInfo("Evaluating classifier")

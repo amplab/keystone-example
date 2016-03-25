@@ -4,7 +4,7 @@ assemblySettings
 
 name := "keystone-example"
 
-version := "0.2"
+version := "0.3"
 
 organization := "edu.berkeley.cs.amplab"
 
@@ -19,7 +19,7 @@ libraryDependencies ++= Seq(
 )
 
 {
-  val defaultSparkVersion = "1.3.1"
+  val defaultSparkVersion = "1.5.2"
   val sparkVersion =
     scala.util.Properties.envOrElse("SPARK_VERSION", defaultSparkVersion)
   val excludeHadoop = ExclusionRule(organization = "org.apache.hadoop")
@@ -28,12 +28,12 @@ libraryDependencies ++= Seq(
     "org.apache.spark" % "spark-core_2.10" % sparkVersion excludeAll(excludeHadoop),
     "org.apache.spark" % "spark-mllib_2.10" % sparkVersion excludeAll(excludeHadoop),
     "org.apache.spark" % "spark-sql_2.10" % sparkVersion excludeAll(excludeHadoop),
-    "edu.berkeley.cs.amplab" % "keystoneml_2.10" % "0.2" excludeAll(excludeHadoop, excludeSpark)
+    "edu.berkeley.cs.amplab" % "keystoneml_2.10" % "0.3.0" excludeAll(excludeHadoop, excludeSpark)
   )
 }
 
 {
-  val defaultHadoopVersion = "2.0.0-mr1-cdh4.2.0"
+  val defaultHadoopVersion = "2.6.0"
   val hadoopVersion =
     scala.util.Properties.envOrElse("SPARK_HADOOP_VERSION", defaultHadoopVersion)
   libraryDependencies += "org.apache.hadoop" % "hadoop-client" % hadoopVersion
